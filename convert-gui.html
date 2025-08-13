@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Conversation Beautifier</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .drop-zone.collapsed {
+            padding: 15px;
+            background: #f8f9fa;
+            border-color: #28a745;
+        }
+
+        .current-file {
+            font-size: 14px;
+            color: #28a745;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #007acc;
+            background: #f0f8ff;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #005a9e;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007acc;
+            display: none;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .output.show {
+            display: flex;
+        }
+
+        .preview {
+            flex: 1;
+            overflow-y: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            min-height: 0;
+        }
+
+        .preview h1,
+        .preview h2,
+        .preview h3 {
+            color: #333;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .preview h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.3em;
+        }
+
+        .preview h2 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.3em;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #ddd;
+            margin: 0;
+            padding-left: 1em;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview code {
+            background: #f6f8fa;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .preview pre {
+            background: #f6f8fa;
+            padding: 1em;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        .preview pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .preview hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 2em 0;
+        }
+
+        .preview strong {
+            font-weight: 600;
+        }
+
+        .preview em {
+            font-style: italic;
+        }
+
+        .download-btn {
+            background: #28a745;
+            margin-top: 10px;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔄 JSON Conversation Beautifier</h1>
+        <p>Convert your JSON conversation exports to beautiful markdown files.</p>
+
+        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <p>📁 Click here or drag & drop your conversation JSON file</p>
+            <input type="file" id="fileInput" class="file-input" accept=".json" />
+        </div>
+
+        <div id="output" class="output">
+            <div id="preview" class="preview"></div>
+            <button id="downloadBtn" class="btn download-btn">📥 Download Markdown</button>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        let convertedMarkdown = '';
+        let originalFilename = '';
+
+        function convertConversationToMarkdown(conversation) {
+            const title = conversation.name || 'Conversation';
+            const createdAt = new Date(conversation.createdAt);
+            const tokenCount = conversation.tokenCount || 0;
+
+            let markdown = `# ${title}\n\n`;
+            markdown += `**Created:** ${createdAt.toLocaleString()}\n`;
+            markdown += `**Token Count:** ${tokenCount.toLocaleString()}\n\n`;
+
+            if (conversation.systemPrompt) {
+                markdown += `## System Prompt\n\n${conversation.systemPrompt}\n\n`;
+            }
+
+            markdown += `---\n\n`;
+
+            conversation.messages.forEach((message, index) => {
+                const version = message.versions[message.currentlySelected];
+
+                if (version.role === 'user') {
+                    markdown += `## User\n\n`;
+                    version.content.forEach(content => {
+                        if (content.type === 'text') {
+                            markdown += `${content.text}\n\n`;
+                        }
+                    });
+                } else if (version.role === 'assistant') {
+                    markdown += `## Assistant\n\n`;
+
+                    if (version.type === 'multiStep') {
+                        version.steps.forEach(step => {
+                            if (step.type === 'contentBlock') {
+                                step.content.forEach(content => {
+                                    if (content.type === 'text' && !content.isStructural) {
+                                        if (step.style && step.style.type === 'thinking') {
+                                            markdown += `*${step.style.title}*\n\n`;
+                                            markdown += `> ${content.text}\n\n`;
+                                        } else {
+                                            markdown += `${content.text}\n\n`;
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        version.content.forEach(content => {
+                            if (content.type === 'text') {
+                                markdown += `${content.text}\n\n`;
+                            }
+                        });
+                    }
+                }
+
+                if (index < conversation.messages.length - 1) {
+                    markdown += `---\n\n`;
+                }
+            });
+
+            return markdown;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const dropZone = document.querySelector('.drop-zone');
+
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('output').classList.remove('show');
+
+            // Reset drop zone on error
+            dropZone.classList.remove('collapsed');
+            dropZone.innerHTML = '<p>📁 Click here or drag & drop your .conversation.json file</p>';
+        }
+
+        function renderMarkdown(markdown) {
+            return marked.parse(markdown);
+        }
+
+        function showSuccess(markdown, filename) {
+            convertedMarkdown = markdown;
+            originalFilename = filename;
+
+            const outputDiv = document.getElementById('output');
+            const previewDiv = document.getElementById('preview');
+            const dropZone = document.querySelector('.drop-zone');
+
+            // Collapse drop zone and show current file
+            dropZone.classList.add('collapsed');
+            dropZone.innerHTML = `
+                <p>📁 Drop another file to convert or <span style="text-decoration: underline;">click to browse</span></p>
+                <div class="current-file">Current: ${filename}</div>
+            `;
+
+            // Show full preview - CSS handles scrolling
+            const preview = markdown;
+
+            // Render markdown as HTML
+            previewDiv.innerHTML = renderMarkdown(preview);
+            outputDiv.classList.add('show');
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function processFile(file) {
+            if (!file.name.endsWith('.json')) {
+                showError('Please select a JSON conversation file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const conversation = JSON.parse(e.target.result);
+                    const markdown = convertConversationToMarkdown(conversation);
+                    showSuccess(markdown, file.name);
+                } catch (error) {
+                    showError('Error parsing JSON file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        // Drag and drop handlers
+        const dropZone = document.querySelector('.drop-zone');
+
+        dropZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Download handler
+        document.getElementById('downloadBtn').addEventListener('click', function () {
+            const blob = new Blob([convertedMarkdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            const baseName = originalFilename.replace(/\.(conversation\.)?json$/, '');
+            a.href = url;
+            a.download = `${baseName}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+
+</html>
