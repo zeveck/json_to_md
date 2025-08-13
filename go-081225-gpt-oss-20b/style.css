@@ -1,0 +1,47 @@
+/* ---------- Reset & Layout ---------- */
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  font-family:sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  background:#f5deb3;
+}
+
+h1{margin:20px 0;}
+
+#board{
+  width:600px;
+  height:600px;
+  position:relative;
+  border:2px solid #333;
+
+  /* Simple grid using linear gradients */
+  background:
+    linear-gradient(to right, #000 1px, transparent 1px),
+    linear-gradient(to bottom, #000 1px, transparent 1px);
+  background-size:33.33px 33.33px;   /* (600 / 18) = 33.33 */
+}
+
+/* ---------- Intersections & Stones ---------- */
+
+.intersection{
+  width:30px; height:30px;
+  border-radius:50%;
+  position:absolute;
+  transform:translate(-50%,-50%);
+  cursor:pointer;
+}
+
+.black{background:#000;}
+.white{
+  background:#fff;
+  box-shadow:inset 0 0 5px rgba(0,0,0,.3);
+}
+
+/* Add a subtle border so stones are clearly visible */
+.stone {
+  width:100%; height:100%;
+  border-radius:50%;
+}
