@@ -84,15 +84,6 @@ The actual response follows here...
 - `convert-gui.html` - Web-based GUI converter
 - `README.md` - This documentation
 
-## Tips
-
-- Works with various JSON conversation formats
-- The converter handles both single-step and multi-step assistant responses  
-- Thinking blocks are clearly marked and formatted as quotes
-- Code blocks and markdown formatting from the original conversation are preserved
-- File names are automatically generated from the original JSON filename
-- Supports both `.conversation.json` and `.json` file extensions
-
 ## License
 
 MIT License - see below for full text.
