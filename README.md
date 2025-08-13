@@ -47,31 +47,6 @@ The generated markdown includes:
 - **Thinking blocks** formatted as quotes with italicized titles
 - **Code blocks** and formatting preserved
 
-## Example Output
-
-```markdown
-# My Conversation Title
-
-**Created:** 8/12/2025, 12:01:01 PM
-**Token Count:** 23,031
-
----
-
-## User
-
-Your question here...
-
----
-
-## Assistant
-
-*Thought for 2.3 seconds*
-
-> Internal reasoning appears here as a quote block
-
-The actual response follows here...
-```
-
 ## Requirements
 
 - Node.js (for command-line tools)
